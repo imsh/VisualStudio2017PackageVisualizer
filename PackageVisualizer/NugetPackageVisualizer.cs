@@ -26,6 +26,7 @@ namespace PackageVisualizer
         private readonly string categoryAttributeName = "Category";
         private readonly string idAttributeName = "Id";
         private readonly string includeAttributeName = "Include";
+        private readonly string versionAttributeName = "Version";
         private readonly string blueColorName = "Blue";
         private readonly string yellowColorName = "Yellow";
 
@@ -274,7 +275,17 @@ namespace PackageVisualizer
                 {
                     foreach (var pr in XDocument.Load(pk).Descendants(csprojns + "PackageReference"))
                     {
-                        var package = GetOrCreatePackage(pr.Attribute(includeAttributeName).Value, pr.Attribute("Version").Value, project);
+                        var version = pr.Attribute(versionAttributeName)?.Value;
+                        if (version == null || version.IsEmpty())
+                        {
+                            var versionTag = pr.Descendants(csprojns + versionAttributeName).FirstOrDefault();
+                            if (versionTag != null)
+                            {
+                                version = versionTag.Value;
+                            }
+                        }
+
+                        var package = GetOrCreatePackage(pr.Attribute(includeAttributeName).Value, version, project);
                         if (!project.Packages.Any(p => p.Equals(package)))
                         {
                             project.Packages.Add(package);
