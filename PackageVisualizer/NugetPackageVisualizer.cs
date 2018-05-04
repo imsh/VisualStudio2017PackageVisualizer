@@ -323,7 +323,12 @@ namespace PackageVisualizer
             const string keyDelimiter = "@@@";
             var mapping = _packageList.ToDictionary(c => c.Name + keyDelimiter + c.Version, StringComparer.InvariantCultureIgnoreCase);
             var dependencies = new List<NugetPackage>();
+            
             var nugetPackageFile = _solutionFolder + $@"\packages\{name}.{version}\{name}.{version}.nupkg";
+            if (!File.Exists(nugetPackageFile))
+            {
+                nugetPackageFile = Environment.GetEnvironmentVariable("userprofile") + $@"\.nuget\packages\{name}\{version}\{name}.{version}.nupkg";
+            }
 
             if (File.Exists(nugetPackageFile))
             {
