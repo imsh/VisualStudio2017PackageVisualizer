@@ -19,6 +19,7 @@ namespace PackageVisualizer
         private readonly List<NugetPackage> _packageList = new List<NugetPackage>();
         private readonly string[] _projectExtensionExclusions = { ".vdproj", ".ndproj", ".wdproj", ".shfbproj", ".modelproj" };
         private readonly XNamespace _dgmlns = "http://schemas.microsoft.com/vs/2009/dgml";
+        private readonly XNamespace csprojns = "http://schemas.microsoft.com/developer/msbuild/2003";
         private readonly string packageAttributeName = "Package";
         private readonly string packageDependencyAttributeName = "Package Dependency";
         private readonly string projectAttributeName = "Project";
@@ -271,7 +272,7 @@ namespace PackageVisualizer
                 }
                 else
                 {
-                    foreach (var pr in XDocument.Load(pk).Descendants("PackageReference"))
+                    foreach (var pr in XDocument.Load(pk).Descendants(csprojns + "PackageReference"))
                     {
                         var package = GetOrCreatePackage(pr.Attribute(includeAttributeName).Value, pr.Attribute("Version").Value, project);
                         if (!project.Packages.Any(p => p.Equals(package)))
