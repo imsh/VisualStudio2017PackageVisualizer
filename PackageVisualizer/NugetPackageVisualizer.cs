@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
+using EnvDTE;
 using EnvDTE80;
 using NuGet;
 
@@ -228,6 +229,16 @@ namespace PackageVisualizer
                     !_projectExtensionExclusions.Any(ex => project.FullName.EndsWith(ex)))
                 {
                     _projectList.Add(new Project {Path = project.FullName, Name = project.Name});
+                    var propDic = new Dictionary<string, string>();
+                    foreach (Property property in project.ConfigurationManager.ActiveConfiguration.Properties)
+                    {
+                        propDic[property.Name] = property.Value as string;
+                    }
+                    var outputGroups = project.ConfigurationManager.ActiveConfiguration.OutputGroups.OfType<EnvDTE.OutputGroup>().Select(o => o.CanonicalName)
+                        .ToList<string>();
+
+                    var count = propDic.Count();
+
                 }
             }
         }
@@ -353,7 +364,7 @@ namespace PackageVisualizer
 
                 foreach (var dependency in package.GetCompatiblePackageDependencies(null))
                 {
-                    var keys = mapping.Keys.Where(k => k.StartsWith(dependency.Id + keyDelimiter, StringComparison.InvariantCultureIgnoreCase));
+                    var keys = mapping.Keys.Where(k => k.StartsWith(dependency.Id + keyDelimiter, StringComparison.InvariantCultureIgnoreCase)); //We need to fix this
 
                     string key=null;
 
