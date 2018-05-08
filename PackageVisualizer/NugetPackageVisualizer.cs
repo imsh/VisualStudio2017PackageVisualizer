@@ -161,6 +161,7 @@ namespace PackageVisualizer
                 }
             }
         }
+
         
         private bool ProjectLinkIsDirectDependency(XElement projectLink, IEnumerable<ProjectNugetPackage> packages)
         {
@@ -245,7 +246,7 @@ namespace PackageVisualizer
                 {
                     foreach (var pr in XDocument.Load(pk).Descendants("package"))
                     {
-                        var package = GetOrCreatePackage(pr.Attribute(idAttributeName.ToLower()).Value, pr.Attribute("version").Value, project);
+                        var package = GetOrCreatePackage(pr.Attribute(idAttributeName.ToLower()).Value, pr.Attribute("version").Value);
                         if (!project.Packages.Any(p => p.Equals(package)))
                         {
                             project.Packages.Add(package);
@@ -285,28 +286,44 @@ namespace PackageVisualizer
                             }
                         }
 
-                        var package = GetOrCreatePackage(pr.Attribute(includeAttributeName).Value, version, project);
+                        var package = GetOrCreatePackage(pr.Attribute(includeAttributeName).Value, version);
                         if (!project.Packages.Any(p => p.Equals(package)))
                         {
                             project.Packages.Add(package);
                         }
                     }
 
+                    Queue<NugetPackage> processQueue = new Queue<NugetPackage>(project.Packages);
+                    var processedPackages = new SortedList<string, NugetPackage>();
+                    
                     //spin through packages again to set package dependencies
-                    foreach (var projectPackage in project.Packages)
+                    while (processQueue.Count > 0)
                     {
-                        projectPackage.PackageDependencies =
-                            GetPackageDependencies(projectPackage.Name, projectPackage.Version, project);
+                        var package = processQueue.Dequeue();
+                        if (processedPackages.ContainsKey(CreatePackageKey(package))) continue;
+                        processedPackages[CreatePackageKey(package)] = package;
+
+                        var dependencies = GetPackageDependencies(package.Name, package.Version, project).ToList();
+                        package.PackageDependencies = dependencies;
+                        foreach (var dependency in dependencies)
+                        {
+                            processQueue.Enqueue(dependency);
+                        }
                     }
                 }
             }
         }
 
+        private string CreatePackageKey(NugetPackage c)
+        {
+            const string keyDelimiter = "@@@";
+            return c.Name + keyDelimiter + c.Version;
+        }
         #endregion
 
         #region Domain Objects
 
-        private NugetPackage GetOrCreatePackage(string name, string version, Project project)
+        private NugetPackage GetOrCreatePackage(string name, string version)
         {
             var p = _packageList.SingleOrDefault(l => l.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase) && 
             l.Version.Equals(version, StringComparison.InvariantCultureIgnoreCase));
@@ -359,11 +376,7 @@ namespace PackageVisualizer
                             !dependencies.Any(
                                 d => d.Name.Equals(dependentPackage.Name) && d.Version.Equals(dependentPackage.Version)))
                         {
-                            dependencies.Add(new NugetPackage
-                            {
-                                Name = dependentPackage.Name,
-                                Version = dependentPackage.Version
-                            });
+                            dependencies.Add(GetOrCreatePackage(dependentPackage.Name, dependentPackage.Version));
                         }
                     }
                 }
